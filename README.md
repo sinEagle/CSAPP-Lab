@@ -1,12 +1,44 @@
-# CSAPP-Lab
 
-## 实验环境搭建
+# 目录
+
+- [项目背景](#项目背景)
+- [下载](#下载)
+- [实验列表](#实验列表)
+- [实验环境搭建](#实验环境搭建)
+- [实验进度](#实验进度)
+- [开源协议](#开源协议)
+
+# 项目背景
+
+记录《深入理解计算机系统》的实验记录和学习思考。
+
+# 下载
+
+在命令行中运行以下命令。
+```
+unix> git clone https://github.com/ChinaWxq/CSAPP-Lab.git
+```
+
+# 实验列表
+
+- [Data Lab]()
+- [Bomb Lab]()
+- [Attack Lab]()
+- [Buffer Lab]()
+- [Architecture Lab]()
+- [Cache Lab]()
+- [Performance Lab]()
+- [Shell Lab]()
+- [Malloc Lab]()
+- [Proxy Lab]()
+
+# 实验环境搭建
+
+## 下载
 
 ![](./Resource/实验环境.png)
 
 实验环境是unix环境，推荐使用Linux环境，macOS与Linux环境还是有区别，所以推荐使用Docker的Linux容器搭建轻量级Linux环境。
-
-
 
 ### Docker下载
 
@@ -52,7 +84,19 @@ sudo apt-get install gcc-multilib
 sudo apt-get install gdb
 ```
 
-## 实验目录
+# 实验进度
 
-- [Data Lab]()
+- [x] [Data Lab]
+- [ ] [Bomb Lab]
+- [ ] [Attack Lab]
+- [ ] [Buffer Lab]
+- [ ] [Architecture Lab]
+- [ ] [Cache Lab]
+- [ ] [Performance Lab]
+- [ ] [Shell Lab]
+- [ ] [Malloc Lab]
+- [ ] [Proxy Lab]
 
+# 开源协议
+
+MIT License Copyright (c) 2020 Ryan
