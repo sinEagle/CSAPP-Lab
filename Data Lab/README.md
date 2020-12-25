@@ -96,3 +96,199 @@ int isTmax(int x) {
 
 tMax的二进制表示是0x7fffffff，观察特征后，tMax加1后取反仍是tMax。我们可以通过`~(x + 1) ^ x`是否等于0来判断一个数是否是tMax，我们发现还有一个数符合这种条件，0xffffffff也就是-1也满足该条件。我们只需判断是-1的情况下便可以用该条件判断是否是tMax。
 
+#### allOddBits
+
+```c
+/* 
+ * allOddBits - return 1 if all odd-numbered bits in word set to 1
+ *   where bits are numbered from 0 (least significant) to 31 (most significant)
+ *   Examples allOddBits(0xFFFFFFFD) = 0, allOddBits(0xAAAAAAAA) = 1
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 12
+ *   Rating: 2
+ */
+int allOddBits(int x) {
+  int t1 = (0xAA << 8) + 0xAA; // 0x0000AAAA
+  int t2 = (t1 << 16) + t1;    // 0xAAAAAAAA
+  return !((x & t2) ^ t2);
+}
+```
+> 检查x二进制表示0-31位中是否奇数位全为1。
+
+分析：
+
+我们只需要将0xAAAAAAAA这个奇数位全为1的掩码构出来与x进行先与后异或的比较即可。
+
+#### negate
+
+```c
+/* 
+ * negate - return -x 
+ *   Example: negate(1) = -1.
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 5
+ *   Rating: 2
+ */
+int negate(int x) {
+  return (~x) + 1;
+}
+```
+
+> 返回-x。
+
+分析：
+
+在二进制补码中，正数与负数的关系是：正数按位取反 + 1 = 负数。
+
+#### isAsciiDigit
+
+```c
+//3
+/* 
+ * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9')
+ *   Example: isAsciiDigit(0x35) = 1.
+ *            isAsciiDigit(0x3a) = 0.
+ *            isAsciiDigit(0x05) = 0.
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 15
+ *   Rating: 3
+ */
+int isAsciiDigit(int x) {
+  int flag1 = !!((0x2F + ~x + 1) >> 31);
+  int flag2 = !((0x39 + ~x + 1) >> 31);
+  return flag1 & flag2;
+}
+```
+
+> 检查x是否是'0'字符与'9'字符之间的数。
+
+分析：
+
+题目要求是`0x30 <= x <= 0x39`，分别得到`0x30 - x <= 0`和`0x39 - x >= 0`，我们分别思考这两个式子。
+
+`0x30 - x <= 0`，我们利用`0x30 + (-x) = 0x30 + ~x + 1`即可得到减后的结果，但是我们如何判断是否小于等于0呢？我们可以利用符号位来判断是否小于0却无法因此判断是否等于0。因为x是int类型整数，所以我们可以不等式中的小于等于化为小于，来取消等号判断的烦恼。`(0x30 - 1) - x < 0`,这样当`x = 0x30`时，表达式仍是负数，我们便可以使用符号位来判断是否满足条件了。
+
+而`0x39 - x >= 0`，我们只需检查相减后的符号位是否为0即可。
+
+所以我们便判断，x是否同时满足这两个条件即可，由于负数右移，实验要求的右移是**算术右移**(负数高位补1，非负数高位补0)，所以`(0x2F + ~x + 1) >> 31`后如果满足结果则是`0xffffffff`，我们使用`!!`将结果转为逻辑值`1`，使用逻辑值和按位与来检查x是否同时满足2个条件更加方便。
+
+#### conditional
+
+```c
+/* 
+ * conditional - same as x ? y : z 
+ *   Example: conditional(2,4,5) = 4
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 16
+ *   Rating: 3
+ */
+int conditional(int x, int y, int z) {
+  x = !!x;
+  x = (~x) + 1;
+  return (x & y) | (~x & z);
+}
+```
+
+> 实现`x ? y : z`条件运算符。
+
+分析：
+
+由于我们不能if语句所以return限制了我们只能写一条。我们可以从条件运算符的要求出发，当x为非0时，返回y；当x为0时，返回z。当x为非0时，我们可以返回`(0x11111111 & y) | (0x0000000 & y)`, 当x为0时，我们可以返回`(0x0000000 & y) | (0x11111111 & y)`。我们只需要根据x的值构造一个全1或者全0的掩码即可。我们将x转为逻辑值，再取反加1构造成功。
+
+#### isLessOrEqual
+
+```c
+/* 
+ * isLessOrEqual - if x <= y  then return 1, else return 0 
+ *   Example: isLessOrEqual(4,5) = 1.
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 24
+ *   Rating: 3
+ */
+int isLessOrEqual(int x, int y) {
+  int xIsNeg = !!(x >> 31); // x是否为负数
+  int yIsNeg = !!(y >> 31); // y是否为负数 
+  int flag = xIsNeg ^ yIsNeg; // x和y是否异号
+  return (flag & xIsNeg & !yIsNeg) | (!flag & !!((x + ~y) >> 31));
+}
+```
+
+> 如果x <= y，返回1，否则返回0。
+
+分析：
+
+根据之前的`isAsciiDigit`实现思路，我们很快想到`x - 1 - y < 0 = x - 1 + ~y + 1 < 0 = x + ~y < 0`来判断，但是发现有个bug。`x + ~y`会在x、y异号时可能出现溢出从而导致无法判断。而在x和y异号的时候，只有`x < 0, y >= 0`条件满足，并且无需检查x和y的绝对大小。
+所以我们得出以下判断策略：
+
+1. 如果`x < 0 , y >= 0`，则返回1。
+2. 在1不满足的基础下，如果`x + ~y < 0`，则返回1，否则返回0。
+
+在x等于0的情况，可以在条件2中检测。
+
+#### logicalNeg
+
+```c
+/* 
+ * logicalNeg - implement the ! operator, using all of 
+ *              the legal operators except !
+ *   Examples: logicalNeg(3) = 0, logicalNeg(0) = 1
+ *   Legal ops: ~ & ^ | + << >>
+ *   Max ops: 12
+ *   Rating: 4 
+ */
+int logicalNeg(int x) {
+  int minusX = ~x + 1;
+  return ((x | minusX) >> 31) + 1;
+}
+```
+
+> 实现逻辑非，非0为0，0为1。
+
+分析：
+
+也就是要构造出一个特征区分是否为0。一个数或自己的相反数的结果是-1， 这个数非0。
+
+#### howManyBits
+
+```c
+/* howManyBits - return the minimum number of bits required to represent x in
+ *             two's complement
+ *  Examples: howManyBits(12) = 5
+ *            howManyBits(298) = 10
+ *            howManyBits(-5) = 4
+ *            howManyBits(0)  = 1
+ *            howManyBits(-1) = 1
+ *            howManyBits(0x80000000) = 32
+ *  Legal ops: ! ~ & ^ | + << >>
+ *  Max ops: 90
+ *  Rating: 4
+ */
+int howManyBits(int x) {
+  int b16, b8, b4, b2, b1, b0, sign = x >> 31;
+  x = (sign & ~x) | (~sign & x);
+  b16 = !!(x >> 16) << 4;
+  x = x >> b16;
+  b8 = !!(x >> 8) << 3;
+  x = x >> b8;
+  b4 = !!(x >> 4) << 2;
+  x = x >> b4;
+  b2 = !!(x >> 2) << 1;
+  x = x >> b2; 
+  b1 = !!(x >> 1);
+  x = x >> b1;
+  b0 = x;
+  return b16 + b8 + b4 + b2 + b1 + b0 + 1;
+}
+```
+
+> 求一个数最少需要多少位二进制表示
+
+分析：
+
+正数的最少表示位数，应该是最高的1位加上符号位0。
+负数的最少表示位数，应该是最高的0位加上符号位1。
+而正数的最少表示位数与负数的最少表示位数是一样的，例如3 = 011，-3 = 101。我们只需要求正数的最高位的1所处的位置再加上符号位即可。用分治法，每次划分一半区间。
+先在高16位找，如果有1，则把x右移动16位；
+接着高8位找，如果有1，则把x右移动8位；
+以此类推...
+即可把表示正数的位数算出来，再加上符号位即可。
