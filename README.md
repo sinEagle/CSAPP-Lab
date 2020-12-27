@@ -22,7 +22,7 @@ unix> git clone https://github.com/ChinaWxq/CSAPP-Lab.git
 # 实验列表
 
 - [Data Lab](https://github.com/ChinaWxq/CSAPP-Lab/tree/master/Data%20Lab)
-- [Bomb Lab]()
+- [Bomb Lab](https://github.com/ChinaWxq/CSAPP-Lab/tree/master/Bomb%20Lab)
 - [Attack Lab]()
 - [Buffer Lab]()
 - [Architecture Lab]()
@@ -87,7 +87,7 @@ sudo apt-get install gdb
 # 实验进度
 
 - [x] [Data Lab]
-- [ ] [Bomb Lab]
+- [x] [Bomb Lab]
 - [ ] [Attack Lab]
 - [ ] [Buffer Lab]
 - [ ] [Architecture Lab]
