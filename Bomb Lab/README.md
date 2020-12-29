@@ -14,7 +14,13 @@
 
 使用GDB逆向工程推断6个字符串。设置断点，一步一步调试，找到`explode_bomb`的跳转命令，结合逻辑和寄存器的值进行判断字符串的值。
 
-![](../Resource/拆弹流程.png)
+
+
+<p align="center">
+<img src="https://s3.ax1x.com/2020/12/29/rqFoFg.png" width="400">
+</p>
+
+
 
 每一个炸弹都是从`read_line()`函数从输入流stdin中读取的，存放于input变量中，对应`%rax`寄存器中，将`%rax`的值赋给`%rdi`作为参数传递给`phase_x`函数，**`%rdi`中存放的是字符串的首地址**。
 
@@ -56,7 +62,9 @@ End of assembler dump.
 
 在phase_1和explode_bomb处设置断点并运行，检查`%rsi`寄存器指向字符串的值。
 
-![](../Resource/phase_1.png)
+<p align="center">
+<img src="https://s3.ax1x.com/2020/12/29/rqFMLV.png" width="400">
+</p>
 
 第一个字符串便是`Border relations with Canada have never been better.`。
 
