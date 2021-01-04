@@ -92,7 +92,7 @@ sudo apt-get install gdb
 
 - [x] [Data Lab]
 - [x] [Bomb Lab]
-- [ ] [Attack Lab]
+- [x] [Attack Lab]
 - [ ] [Buffer Lab]
 - [ ] [Architecture Lab]
 - [ ] [Cache Lab]
